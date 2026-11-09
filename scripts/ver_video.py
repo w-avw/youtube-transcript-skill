@@ -117,12 +117,22 @@ def whisper_local(wav: Path, modelo: str) -> str | None:
         return None
     print(f"   · transcribiendo con faster-whisper «{modelo}» (CPU, int8)…")
     m = WhisperModel(modelo, device="cpu", compute_type="int8")
-    segs, info = m.transcribe(str(wav), vad_filter=True)
-    partes = []
+    # Parámetros ESTRICTOS: con `vad_filter=True` y los umbrales por defecto, Whisper descarta EN
+    # SILENCIO los primeros segundos cuando hay música encima o se habla rápido (medido el 17/08/2026:
+    # transcripciones que arrancaban en 4–11 s y parecían completas). Con estos no se tira nada; el
+    # precio es alguna alucinación sobre música («You»), que se descarta mirando los fotogramas.
+    segs, info = m.transcribe(str(wav), vad_filter=False, condition_on_previous_text=False,
+                              no_speech_threshold=1.0, log_prob_threshold=None,
+                              compression_ratio_threshold=None, temperature=[0.0, 0.2, 0.4], beam_size=5)
+    partes, primero = [], None
     for s in segs:
+        primero = s.start if primero is None else primero
         partes.append(f"[{int(s.start)//60:02d}:{int(s.start)%60:02d}] {s.text.strip()}")
     print(f"   · idioma: {info.language} ({info.language_probability:.2f}) · "
           f"{len(partes)} segmentos")
+    if primero is not None and primero > 0.5:
+        print(f"   · ⚠️ la primera línea empieza en {primero:.1f} s, no en 0: mira los fotogramas de ese tramo "
+              "antes de dar la transcripción por completa")
     return "\n".join(partes) if partes else None
 
 

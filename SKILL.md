@@ -64,6 +64,12 @@ Los modelos se bajan solos la primera vez y se quedan en caché (`~/.cache/huggi
 | `medium` | audio difícil, varios hablantes |
 | `large-v3` | cuando una palabra concreta tiene que estar bien |
 
+**La transcripción tiene que empezar en `[00:00]`.** El script usa parámetros estrictos (sin
+`vad_filter`, sin descartar por «no hay voz» ni por confianza baja), porque con los de por defecto
+Whisper se come en silencio los primeros segundos cuando hay música encima: justo el hook. Si la primera
+línea empieza más tarde, lo avisa; mira los fotogramas de ese tramo. El precio es alguna alucinación
+sobre música («You»), que se descarta con los fotogramas.
+
 **Velocidad medida** (19/10/2026, CPU sin GPU, `small` con `compute_type="int8"`): cargar el
 modelo **3,4 s**, y **20 s de audio en 9,4 s** — o sea, unas **2 veces más rápido que el tiempo
 real**. Un vídeo de 12 minutos son ~6 minutos de CPU. Dilo antes de empezar si alguien espera.
